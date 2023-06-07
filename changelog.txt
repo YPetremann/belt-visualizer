@@ -1,6 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.2.2
+Date: 2023-06-07
+  Features:
+    - Removed flickering while using hover mode and selecting belts from the same line
+---------------------------------------------------------------------------------------------------
 Version: 1.2.1
-Date: 2022-5-14
+Date: 2023-05-14
   Bugfixes:
     - Fixed live refresh activating on modifying previously highlighted belt
     - Fixed live refresh not activating on underground belts and linked belts
