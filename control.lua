@@ -249,11 +249,10 @@ local function cache_belt_line(data, max_highlights)
     local head, tail = data.head, data.tail
     if not (head or tail) then return end
     local belt_line = data.belt_line
-    local c = 0
-    local belt_type
     if head then
-        belt_type = get_belt_type(head)
-        while c < max_highlights / 2 do
+        local belt_type = get_belt_type(head)
+        local c = 0
+        while c < max_highlights do
             head = switch(next_connectable, belt_type, head)
             if not head then break end
             belt_type = get_belt_type(head)
@@ -278,6 +277,7 @@ local function cache_belt_line(data, max_highlights)
         data.head = head
     end
     if tail then
+        local c = 0
         while c < max_highlights do
             if not tail then break end
             belt_type = get_belt_type(tail)
