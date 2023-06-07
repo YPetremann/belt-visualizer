@@ -3,7 +3,7 @@ local utils = require("scripts/utils")
 local draw = require("scripts/rendering")
 local get_belt_type = utils.get_belt_type
 local empty_check = utils.empty_check
-local check_entity = utils.empty_check
+local check_entity = utils.check_entity
 local lane_cycle = const.lane_cycle
 local side_cycle = const.side_cycle
 local straight = const.straight
@@ -231,6 +231,7 @@ highlight_entity["underground-belt"] = function(data, entity, lanes, path)
         add_to_queue(data, entity, lanes, entity.neighbours, path)
     end
 end
+
 highlight_entity["splitter"] = function(data, entity, lanes, path)
     local direction = entity.direction
     local belt_neighbours = entity.belt_neighbours
@@ -284,6 +285,7 @@ highlight_entity["splitter"] = function(data, entity, lanes, path)
         end
     end
 end
+
 highlight_entity["linked-belt"] = function(data, entity, lanes, path)
     local direction = entity.direction
     local belt_neighbours = entity.belt_neighbours

@@ -11,6 +11,7 @@ local function setup_globals()
     global.data = {}
     global.in_progress = {}
     global.refresh = {}
+    global.belt_lines = {}
     global.hover = global.hover or {}
 end
 
@@ -28,8 +29,8 @@ local function clear(index)
     global.refresh[index] = nil
     local data = global.data[index]
     if not data then return end
-    data.checked = {}
-    data.transport_line = nil
+    data.checked = nil
+    data.belt_line = nil
     for id in pairs(data.ids) do
         if rendering.is_valid(id) then
             rendering.destroy(id)
@@ -41,6 +42,7 @@ local function remove_player(event)
     local index = event.player_index
     clear(index)
     global.data[index] = nil
+    global.belt_lines[index] = nil
     global.hover[index] = nil
 end
 
@@ -76,9 +78,10 @@ local function highlight(event)
     data.origin = selected
     data.drawn_offsets = {}
     data.drawn_arcs = {}
-    data.checked = {}
-    data.checked[unit_number] = utils.empty_check(type)
-    data.transport_line = selected.get_transport_line(1)
+    data.checked = {[unit_number] = utils.empty_check(type)}
+    data.belt_line = {}
+    data.head = selected
+    data.tail = selected
     data.next_entities = {}
     local lanes = lane_cycle[data.cycle]
     for path = 1, 2 do
@@ -102,8 +105,10 @@ local function refresh(data)
     end
     data.drawn_offsets = {}
     data.drawn_arcs = {}
-    data.checked = {}
-    data.checked[entity.unit_number] = utils.empty_check(entity.type)
+    data.checked = {[entity.unit_number] = utils.empty_check(entity.type)}
+    data.belt_line = {}
+    data.head = entity
+    data.tail = entity
     data.ids = {}
     global.in_progress[data.index] = true
 end
@@ -115,10 +120,10 @@ script.on_event(e.on_selected_entity_changed, function(event)
     if not global.hover[event.player_index] then return end
     local player = game.get_player(event.player_index) --[[@as LuaPlayer]]
     local data = global.data[event.player_index]
-    local selected = player.selected
-    local is_connectable = data and selected and connectables[selected.type]
-    local transport_line = data and data.transport_line
-    if is_connectable and transport_line and player.selected.get_transport_line(1).line_equals(transport_line) then
+    local selected = player.selected --[[@as LuaEntity]]
+    local is_connectable = selected and connectables[get_belt_type(selected)]
+    local belt_line = data and data.belt_line
+    if is_connectable and belt_line and belt_line[selected.unit_number] then
         data.origin = player.selected
         return
     end
@@ -128,7 +133,7 @@ end)
 local function toggle_hover(event)
     local index = event.player_index
     clear(index)
-    local player = game.get_player(index) ---@cast player -nil
+    local player = game.get_player(index) --[[@as LuaPlayer]]
     global.hover[index] = not global.hover[index]
     player.set_shortcut_toggled("bv-toggle-hover", global.hover[index])
 end
@@ -141,6 +146,7 @@ end)
 
 local function highlightable(data, entity)
     local checked = data.checked
+    if not checked then return false end
     if checked[entity.unit_number] then return true end
     for _, input in pairs(entity.belt_neighbours.inputs) do
         if checked[input.unit_number] then return true end
@@ -189,6 +195,115 @@ script.on_event(e.on_player_rotated_entity, function(event)
     if neighbours then on_entity_modified{entity = neighbours, tick = event.tick} end
 end)
 
+---@param t table
+---@param case any
+local function switch(t, case, ...)
+    if t[case] then
+        return t[case](...)
+    end
+end
+
+---@type table<string, fun(entity: LuaEntity): LuaEntity?>
+local next_connectable = {
+    ["transport-belt"] = function(entity)
+        return entity.belt_neighbours.outputs[1]
+    end,
+    ["underground-belt"] = function(entity)
+        if entity.belt_to_ground_type == "input" then
+            return entity.neighbours
+        else
+            return entity.belt_neighbours.outputs[1]
+        end
+    end,
+    ["linked-belt"] = function(entity)
+        if entity.linked_belt_type == "input" then
+            return entity.linked_belt_neighbour
+        else
+            return entity.belt_neighbours.outputs[1]
+        end
+    end,
+}
+
+---@type table<string, fun(entity: LuaEntity): LuaEntity?>
+local previous_connectable = {
+    ["transport-belt"] = function(entity)
+        return entity.belt_neighbours.inputs[1]
+    end,
+    ["underground-belt"] = function(entity)
+        if entity.belt_to_ground_type == "output" then
+            return entity.neighbours
+        else
+            return entity.belt_neighbours.inputs[1]
+        end
+    end,
+    ["linked-belt"] = function(entity)
+        if entity.linked_belt_type == "output" then
+            return entity.linked_belt_neighbour
+        else
+            return entity.belt_neighbours.inputs[1]
+        end
+    end,
+}
+
+local function cache_belt_line(data, max_highlights)
+    local head, tail = data.head, data.tail
+    if not (head or tail) then return end
+    local belt_line = data.belt_line
+    local c = 0
+    local belt_type
+    if head then
+        belt_type = get_belt_type(head)
+        while c < max_highlights / 2 do
+            head = switch(next_connectable, belt_type, head)
+            if not head then break end
+            belt_type = get_belt_type(head)
+            if belt_type == "splitter" then
+                head = nil
+                break
+            end
+            local limit = 1
+            if belt_type == "underground-belt" and head.belt_to_ground_type == "output" then
+                limit = 0
+            elseif belt_type == "linked-belt" and head.linked_belt_type == "output" then
+                limit = 0
+            end
+            if #head.belt_neighbours.inputs <= limit then
+                belt_line[head.unit_number] = true
+            else
+                head = nil
+                break
+            end
+            c = c + 1
+        end
+        data.head = head
+    end
+    if tail then
+        while c < max_highlights do
+            if not tail then break end
+            belt_type = get_belt_type(tail)
+            if belt_type == "splitter" then
+                tail = nil
+                break
+            end
+            belt_line[tail.unit_number] = true
+            local limit = 1
+            if belt_type == "underground-belt" and tail.belt_to_ground_type == "output" then
+                limit = 0
+            elseif belt_type == "linked-belt" and tail.linked_belt_type == "output" then
+                limit = 0
+            end
+            if #tail.belt_neighbours.inputs <= limit then
+                tail = switch(previous_connectable, belt_type, tail)
+            else
+                tail = nil
+                break
+            end
+            c = c + 1
+        end
+        data.tail = tail
+    end
+end
+
 script.on_event(e.on_tick, function(event)
     for index, tick in pairs(global.refresh) do
         if tick == event.tick then
@@ -197,10 +312,12 @@ script.on_event(e.on_tick, function(event)
         end
     end
     local player_count = table_size(global.in_progress)
+    local max_highlights = settings.global["bv-highlight-maximum"].value / player_count
     for index in pairs(global.in_progress) do
         local data = global.data[index]
+        cache_belt_line(data, max_highlights)
         local c = 0
-        while c < settings.global["highlight-maximum"].value / player_count do
+        while c < max_highlights do
             local i, next_data = next(data.next_entities)
             if not i then break end
             local entity = next_data.entity
