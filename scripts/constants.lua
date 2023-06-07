@@ -8,6 +8,27 @@ local color = {1, 1, 0}
 local radius = width * 1.25 / 32
 local size = width * 1.125 / 32
 
+local connectables = {
+    ["transport-belt"] = true,
+    ["underground-belt"] = true,
+    ["splitter"] = true,
+    ["loader"] = true,
+    ["loader-1x1"] = true,
+    ["linked-belt"] = true,
+}
+
+local lane_cycle = {
+    {true, true},
+    {[1] = true},
+    {[2] = true},
+}
+
+local side_cycle = {
+    both = {"left", "right"},
+    left = {"left"},
+    right = {"right"},
+}
+
 local function empty_offsets(splitter)
     local t = splitter and {left = {}, right = {}} or {}
     return {
@@ -166,6 +187,10 @@ return {
     width = width,
     color = color,
     radius = radius,
+    connectables = connectables,
+    lane_cycle = lane_cycle,
+    side_cycle = side_cycle,
+    get_belt_type = get_belt_type,
     straight = straight,
     curved = curved,
     arc_radius = arc_radius,
