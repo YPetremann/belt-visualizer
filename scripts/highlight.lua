@@ -98,13 +98,13 @@ end
 
 local function add_to_queue(data, old_entity, lanes, entity, path)
     if not entity then return end
-    local type = entity.type
-    if type == "entity-ghost" then
+    local belt_type = entity.type
+    if belt_type == "entity-ghost" then
         if data.ghost then
-            type = entity.ghost_type
+            belt_type = entity.ghost_type
         else return end
     end
-    local is_splitter = type == "splitter"
+    local is_splitter = belt_type == "splitter"
     local sides
     if is_splitter then
         sides = {}
@@ -137,7 +137,7 @@ local function add_to_queue(data, old_entity, lanes, entity, path)
                 check = checked[unit_number][lane][path] or check
             end
         else
-            checked[unit_number] = empty_check(type)
+            checked[unit_number] = empty_check(belt_type)
         end
         if not check then
             new_lanes[lane] = true

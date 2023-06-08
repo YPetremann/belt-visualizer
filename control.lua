@@ -255,6 +255,10 @@ local function cache_belt_line(data, max_highlights)
         while c < max_highlights do
             head = switch(next_connectable, belt_type, head)
             if not head then break end
+            if head.type == "entity-ghost" and not data.ghost then
+                head = nil
+                break
+            end
             belt_type = get_belt_type(head)
             if belt_type == "splitter" then
                 head = nil
@@ -280,6 +284,10 @@ local function cache_belt_line(data, max_highlights)
         local c = 0
         while c < max_highlights do
             if not tail then break end
+            if tail.type == "entity-ghost" and not data.ghost then
+                tail = nil
+                break
+            end
             belt_type = get_belt_type(tail)
             if belt_type == "splitter" then
                 tail = nil
