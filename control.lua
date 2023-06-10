@@ -198,13 +198,14 @@ end)
 ---@param t table
 ---@param case any
 local function switch(t, case, ...)
-    if t[case] then
-        return t[case](...)
+    local fun = t[case]
+    if fun then
+        return fun(...)
     end
 end
 
 ---@type table<string, fun(entity: LuaEntity): LuaEntity?>
-local next_connectable = {
+local next_switch = {
     ["transport-belt"] = function(entity)
         return entity.belt_neighbours.outputs[1]
     end,
@@ -225,7 +226,7 @@ local next_connectable = {
 }
 
 ---@type table<string, fun(entity: LuaEntity): LuaEntity?>
-local previous_connectable = {
+local previous_switch = {
     ["transport-belt"] = function(entity)
         return entity.belt_neighbours.inputs[1]
     end,
@@ -245,70 +246,39 @@ local previous_connectable = {
     end,
 }
 
+local function walk_belt(belt, belt_switch, belt_line, max_highlights, ghost, include)
+    local c = 0
+    while c < max_highlights do
+        if not belt then return end
+        if belt.type == "entity-ghost" and not ghost then return end
+        belt_type = get_belt_type(belt)
+        if belt_type == "splitter" then return end
+        if include then
+            belt_line[belt.unit_number] = true
+        end
+        local limit = 1
+        if (belt_type == "underground-belt" and belt.belt_to_ground_type == "output")
+        or (belt_type == "linked-belt" and belt.linked_belt_type == "output") then
+            limit = 0
+        end
+        if #belt.belt_neighbours.inputs > limit then return end
+        belt_line[belt.unit_number] = true
+        belt = switch(belt_switch, belt_type, belt)
+        c = c + 1
+    end
+    return belt
+end
+
 local function cache_belt_line(data, max_highlights)
     local head, tail = data.head, data.tail
-    if not (head or tail) then return end
     local belt_line = data.belt_line
-    if head then
-        local belt_type = get_belt_type(head)
-        local c = 0
-        while c < max_highlights do
-            head = switch(next_connectable, belt_type, head)
-            if not head then break end
-            if head.type == "entity-ghost" and not data.ghost then
-                head = nil
-                break
-            end
-            belt_type = get_belt_type(head)
-            if belt_type == "splitter" then
-                head = nil
-                break
-            end
-            local limit = 1
-            if belt_type == "underground-belt" and head.belt_to_ground_type == "output" then
-                limit = 0
-            elseif belt_type == "linked-belt" and head.linked_belt_type == "output" then
-                limit = 0
-            end
-            if #head.belt_neighbours.inputs <= limit then
-                belt_line[head.unit_number] = true
-            else
-                head = nil
-                break
-            end
-            c = c + 1
-        end
-        data.head = head
+    local ghost = data.ghost
+    if head and head.valid then
+        head = switch(next_switch, get_belt_type(head), head)
+        data.head = walk_belt(head, next_switch, belt_line, max_highlights, ghost)
     end
-    if tail then
-        local c = 0
-        while c < max_highlights do
-            if not tail then break end
-            if tail.type == "entity-ghost" and not data.ghost then
-                tail = nil
-                break
-            end
-            belt_type = get_belt_type(tail)
-            if belt_type == "splitter" then
-                tail = nil
-                break
-            end
-            belt_line[tail.unit_number] = true
-            local limit = 1
-            if belt_type == "underground-belt" and tail.belt_to_ground_type == "output" then
-                limit = 0
-            elseif belt_type == "linked-belt" and tail.linked_belt_type == "output" then
-                limit = 0
-            end
-            if #tail.belt_neighbours.inputs <= limit then
-                tail = switch(previous_connectable, belt_type, tail)
-            else
-                tail = nil
-                break
-            end
-            c = c + 1
-        end
-        data.tail = tail
+    if tail and tail.valid then
+        data.tail = walk_belt(tail, previous_switch, belt_line, max_highlights, ghost, true)
     end
 end
 
