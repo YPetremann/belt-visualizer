@@ -52,7 +52,7 @@ local function get_input_lanes(data, entity, input, side)
 end
 
 local default_output = {"output", "output"}
-local function get_next_lanes(data, entity, lanes, output)
+local function get_output_lanes(data, entity, lanes, output)
     if not output or entity.direction == output.direction then return lanes, default_output end
     if not data.ghost and output.type == "entity-ghost" then return lanes, default_output end
     local clockwise = is_clockwise(entity, output)
@@ -156,7 +156,7 @@ local function highlight_loader(loader_const)
         local direction = entity.direction
         local belt_neighbours = entity.belt_neighbours
         local output = belt_neighbours.outputs[1]
-        local next_lanes, lane_offsets = get_next_lanes(data, entity, lanes, output)
+        local next_lanes, lane_offsets = get_output_lanes(data, entity, lanes, output)
         for lane in pairs(lanes) do
             local offsets = loader_const[lane][direction]
             local lane_offset = lane_offsets[lane]
@@ -175,7 +175,7 @@ highlight_entity["transport-belt"] = function(data, entity, lanes, path)
     local inputs = belt_neighbours.inputs
     local output = belt_neighbours.outputs[1]
     local is_curved = (#inputs == 1) and (direction ~= inputs[1].direction)
-    local next_lanes, lane_offsets = get_next_lanes(data, entity, lanes, output)
+    local next_lanes, lane_offsets = get_output_lanes(data, entity, lanes, output)
     for lane in pairs(lanes) do
         local offsets = straight[lane][direction]
         local lane_offset = lane_offsets[lane]
@@ -204,7 +204,7 @@ highlight_entity["underground-belt"] = function(data, entity, lanes, path)
     local output = belt_neighbours.outputs[1]
     local type = entity.belt_to_ground_type
     local is_input = type == "input"
-    local next_lanes, lane_offsets = get_next_lanes(data, entity, lanes, output)
+    local next_lanes, lane_offsets = get_output_lanes(data, entity, lanes, output)
     for lane in pairs(lanes) do
         local lane_offset = is_input and "input" or lane_offsets[lane]
         draw.line(data, entity, underground[lane][direction][type], straight[lane][direction][lane_offset])
@@ -247,7 +247,7 @@ highlight_entity["splitter"] = function(data, entity, lanes, path)
     local filter_side = get_filter_side(data, entity)
     local queued = nil
     for _, side in pairs(forward and side_cycle[filter_side] or side_cycle.both) do
-        local next_lanes, lane_offsets = get_next_lanes(data, entity, lanes, belts[side])
+        local next_lanes, lane_offsets = get_output_lanes(data, entity, lanes, belts[side])
         for lane in pairs(lanes) do
             local offsets = splitter[lane][direction]
             local side_offsets = offsets[side]
@@ -265,7 +265,7 @@ highlight_entity["splitter"] = function(data, entity, lanes, path)
         if belt_check then
             local sides = not forward and side_cycle[filter_side] or get_splitter_sides(entity, belt)
             for _, side in pairs(sides) do
-                local _, lane_offsets = get_next_lanes(data, entity, lanes, belt)
+                local _, lane_offsets = get_output_lanes(data, entity, lanes, belt)
                 local checked_lanes = forward and get_input_lanes(data, entity, belt, side) or lanes
                 for lane in pairs(checked_lanes) do
                     local belt_path
@@ -293,7 +293,7 @@ highlight_entity["linked-belt"] = function(data, entity, lanes, path)
     local linked_belt_neighbour = entity.linked_belt_neighbour
     local is_input = entity.linked_belt_type == "input"
     local forward = path == 1
-    local next_lanes, lane_offsets = get_next_lanes(data, entity, lanes, output)
+    local next_lanes, lane_offsets = get_output_lanes(data, entity, lanes, output)
     for lane in pairs(lanes) do
         local offsets = linked_belt[lane][direction]
         local middle = offsets.middle

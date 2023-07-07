@@ -190,7 +190,6 @@ return {
     connectables = connectables,
     lane_cycle = lane_cycle,
     side_cycle = side_cycle,
-    get_belt_type = get_belt_type,
     straight = straight,
     curved = curved,
     arc_radius = arc_radius,
