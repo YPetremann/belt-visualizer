@@ -103,6 +103,8 @@ local function refresh(data)
     local entity = data.origin
     if not entity.valid then return end
     data.next_entities = {}
+    data.next_index = 1
+    data.next_len = 2
     for i = 1, 2 do
         data.next_entities[i] = {entity = entity, lanes = lane_cycle[data.cycle], path = i}
     end
@@ -158,11 +160,11 @@ local function highlightable(data, entity)
         if checked[output.unit_number] then return true end
     end
     if entity.type == "underground-belt" then
-        local neighbours = entity.neighbours
-        if neighbours and checked[neighbours.unit_number] then return true end
+        local neighbour = entity.neighbours
+        if neighbour and checked[neighbour.unit_number] then return true end
     elseif entity.type == "linked-belt" then
-        local neighbours = entity.linked_belt_neighbours
-        if neighbours and checked[neighbours.unit_number] then return true end
+        local neighbour = entity.linked_belt_neighbour
+        if neighbour and checked[neighbour.unit_number] then return true end
     end
     return false
 end
@@ -289,7 +291,6 @@ script.on_event(e.on_tick, function(event)
     for index, tick in pairs(global.refresh) do
         if tick == event.tick then
             refresh(global.data[index])
-            global.refresh[index] = nil
         end
     end
     local player_count = table_size(global.in_progress)
@@ -300,12 +301,12 @@ script.on_event(e.on_tick, function(event)
         for id in pairs(ids) do
             if rendering.is_valid(id) then
                 rendering.destroy(id)
-                ids[id] = nil
             end
+            ids[id] = nil
             c = c + 1
             if c > max_highlights then break end
         end
-        if table_size(ids) == 0 then global.clear[ids] = nil end
+        if not next(ids) then global.clear[ids] = nil end
     end
     max_highlights = highlight_maximum / player_count
     for index in pairs(global.in_progress) do

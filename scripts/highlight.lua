@@ -102,7 +102,7 @@ local function get_prev_lanes(entity, lanes, input)
     end
 end
 
-local function add_to_queue(data, old_entity, lanes, entity, path)
+local function add_to_queue(data, entity, lanes, path, old_entity)
     if not entity then return end
     local belt_type = entity.type
     if belt_type == "entity-ghost" then
@@ -155,22 +155,6 @@ local function add_to_queue(data, old_entity, lanes, entity, path)
     end
 end
 
-local function highlight_loader(loader_const)
-    return function(data, entity, lanes, path)
-        local direction = entity.direction
-        local belt_neighbours = entity.belt_neighbours
-        local output = belt_neighbours.outputs[1]
-        local next_lanes, lane_offsets = get_output_lanes(data, entity, lanes, output)
-        for lane in pairs(lanes) do
-            local offsets = loader_const[lane][direction]
-            local lane_offset = lane_offsets[lane]
-            draw.line(data, entity, offsets.input, offsets[lane_offset])
-            draw.rectangle(data, entity, loader_const.rectangle[lane][direction][entity.loader_type])
-        end
-        add_to_queue(data, entity, next_lanes, path == 1 and output or belt_neighbours.inputs[1], path)
-    end
-end
-
 local highlight_entity = {}
 
 highlight_entity["transport-belt"] = function(data, entity, lanes, path)
@@ -193,11 +177,11 @@ highlight_entity["transport-belt"] = function(data, entity, lanes, path)
         end
     end
     if path == 1 then
-        add_to_queue(data, entity, next_lanes, output, 1)
+        add_to_queue(data, output, next_lanes, 1, entity)
     else
         for _, input in pairs(inputs) do
             local prev_lanes = is_curved and lanes or get_prev_lanes(entity, lanes, input)
-            if prev_lanes then add_to_queue(data, entity, prev_lanes, input, 2) end
+            if prev_lanes then add_to_queue(data, input, prev_lanes, 2, entity) end
         end
     end
 end
@@ -215,24 +199,25 @@ highlight_entity["underground-belt"] = function(data, entity, lanes, path)
     end
     local forward = path == 1
     if forward then
-        add_to_queue(data, entity, next_lanes, output, path)
+        add_to_queue(data, output, next_lanes, path, entity)
     else
         for _, input in pairs(belt_neighbours.inputs) do
             local prev_lanes = get_prev_lanes(entity, lanes, input)
-            if prev_lanes then add_to_queue(data, entity, prev_lanes, input, path) end
+            if prev_lanes then add_to_queue(data, input, prev_lanes, path, entity) end
         end
     end
-    if forward == is_input and entity.neighbours then
+    local neighbour = entity.neighbours
+    if forward == is_input and neighbour then
         local check = data.checked[entity.unit_number]
-        local neighbour_check = data.checked[entity.neighbours.unit_number]
+        local neighbour_check = data.checked[neighbour.unit_number]
         for lane in pairs(lanes) do
             if not (neighbour_check and neighbour_check[lane].dash) then
                 local offsets = dash[lane][direction]
-                draw.dash(data, is_input and entity or entity.neighbours, offsets.input, offsets.output)
+                draw.dash(data, is_input and entity or neighbour, offsets.input, offsets.output)
             end
             check[lane].dash = true
         end
-        add_to_queue(data, entity, lanes, entity.neighbours, path)
+        add_to_queue(data, neighbour, lanes, path, entity)
     end
 end
 
@@ -260,7 +245,7 @@ highlight_entity["splitter"] = function(data, entity, lanes, path)
             draw.line(data, entity, offsets.left.line, offsets.right.line)
         end
         if queued ~= belts[side] then
-            add_to_queue(data, entity, next_lanes, belts[side], path)
+            add_to_queue(data, belts[side], next_lanes, path, entity)
             queued = belts[side]
         end
     end
@@ -304,9 +289,47 @@ highlight_entity["linked-belt"] = function(data, entity, lanes, path)
         draw.line(data, entity, middle, offsets[lane_offset])
         draw.circle(data, entity, middle)
     end
-    add_to_queue(data, entity, next_lanes, forward and output or belt_neighbours.inputs[1], path)
+    add_to_queue(data, forward and output or belt_neighbours.inputs[1], next_lanes, path, entity)
     if is_input == forward then
-        add_to_queue(data, entity, lanes, linked_belt_neighbour, path)
+        add_to_queue(data, linked_belt_neighbour, lanes, path, entity)
+    end
+end
+
+---@return fun(data: table, entity: LuaEntity, lanes: table, path: 1|2)
+local function highlight_loader(loader_const)
+    return function(data, entity, lanes, path)
+        local direction = entity.direction
+        local belt_neighbours = entity.belt_neighbours
+        local output = belt_neighbours.outputs[1]
+        local loader_type = entity.loader_type
+        local next_lanes, lane_offsets = get_output_lanes(data, entity, lanes, output)
+        for lane in pairs(lanes) do
+            local offsets = loader_const[lane][direction]
+            local lane_offset = lane_offsets[lane]
+            draw.line(data, entity, offsets.input, offsets[lane_offset])
+            draw.rectangle(data, entity, loader_const.rectangle[lane][direction][loader_type])
+        end
+        local forward = path == 1
+        local new_entity = forward and output or belt_neighbours.inputs[1]
+        add_to_queue(data, new_entity, next_lanes, path, entity)
+        if forward == (loader_type == "input") then
+            local container = entity.loader_container
+            if container and (container.type == "container" or container.type == "logistic-container") then
+                local box = container.prototype.collision_box
+                local lt, rb = box.left_top, box.right_bottom
+                local pos = container.position
+                local loaders = container.surface.find_entities_filtered{
+                    area = {{pos.x + lt.x - 1, pos.y + lt.y - 1}, {pos.x + rb.x + 1, pos.y + rb.y + 1}},
+                    type = {"loader", "loader-1x1"},
+                }
+                for _, loader in pairs(loaders) do
+                    local loader_container = loader.loader_container
+                    if loader ~= entity and loader_container and loader_container == container and loader_type ~= loader.loader_type then
+                        add_to_queue(data, loader, lane_cycle[1], path, entity)
+                    end
+                end
+            end
+        end
     end
 end
 
