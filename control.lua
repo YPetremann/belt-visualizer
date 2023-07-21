@@ -12,6 +12,7 @@ local function setup_globals()
     global.in_progress = {}
     global.refresh = {}
     global.belt_lines = {}
+    global.clear = global.clear or {}
     global.hover = global.hover or {}
     -- global.colors = const.generate_colors()
 end
@@ -32,11 +33,10 @@ local function clear(index)
     if not data then return end
     data.checked = nil
     data.belt_line = nil
-    for id in pairs(data.ids) do
-        if rendering.is_valid(id) then
-            rendering.destroy(id)
-        end
+    if data.ids then
+        global.clear[data.ids] = true
     end
+    data.ids = nil
 end
 
 local function remove_player(event)
@@ -84,6 +84,8 @@ local function highlight(event)
     data.head = selected
     data.tail = selected
     data.next_entities = {}
+    data.next_index = 1
+    data.next_len = 2
     local lanes = lane_cycle[data.cycle]
     for path = 1, 2 do
         data.next_entities[path] = {entity = selected, lanes = lanes, path = path}
@@ -291,21 +293,37 @@ script.on_event(e.on_tick, function(event)
         end
     end
     local player_count = table_size(global.in_progress)
-    local max_highlights = settings.global["bv-highlight-maximum"].value / player_count
+    local highlight_maximum = settings.global["bv-highlight-maximum"].value
+    local max_highlights = highlight_maximum * 8 / table_size(global.clear)
+    for ids in pairs(global.clear) do
+        local c = 0
+        for id in pairs(ids) do
+            if rendering.is_valid(id) then
+                rendering.destroy(id)
+                ids[id] = nil
+            end
+            c = c + 1
+            if c > max_highlights then break end
+        end
+        if table_size(ids) == 0 then global.clear[ids] = nil end
+    end
+    max_highlights = highlight_maximum / player_count
     for index in pairs(global.in_progress) do
         local data = global.data[index]
         cache_belt_line(data, max_highlights)
         local c = 0
         while c < max_highlights do
-            local i, next_data = next(data.next_entities)
-            if not i then break end
+            local next_index = data.next_index
+            local next_data = data.next_entities[next_index]
+            if not next_data then break end
             local entity = next_data.entity
             if entity.valid then
                 highlight_entity[get_belt_type(entity)](data, next_data.entity, next_data.lanes, next_data.path)
                 c = c + 1
             end
-            table.remove(data.next_entities, i) -- optimize to insert last element in hole?
+            data.next_entities[next_index] = nil
+            data.next_index = next_index + 1
         end
-        if not next(data.next_entities) then global.in_progress[data.index] = nil end
+        if not data.next_entities[data.next_index] then global.in_progress[data.index] = nil end
     end
 end)

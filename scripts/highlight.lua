@@ -149,8 +149,9 @@ local function add_to_queue(data, old_entity, lanes, entity, path)
     end
     if next(new_lanes) then
         local next_entities = data.next_entities
-        local i = #next_entities + 1
-        next_entities[i] = {entity = entity, lanes = new_lanes, path = path}
+        local next_len = data.next_len + 1
+        data.next_len = next_len
+        next_entities[next_len] = {entity = entity, lanes = new_lanes, path = path}
     end
 end
 
