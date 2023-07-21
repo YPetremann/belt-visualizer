@@ -36,17 +36,23 @@ local function get_filter_side(data, entity)
     return (output_priority == "left") == (data.filter == splitter_filter.name) and "left" or "right"
 end
 
-local function get_input_lanes(data, entity, input, side)
-    local check = data.checked[input.unit_number]
-    if not check then return {} end
-    local lanes = {}
-    local sides = get_splitter_sides(input, entity)
-    side = sides[2] and side or sides[1]
-    local lane_check = get_belt_type(input) == "splitter" and check[side][1] or check
-    for lane, paths in pairs(lane_check) do
+local function get_input_paths(check, lanes)
+    for lane, paths in pairs(check) do
         if paths[1] then
             lanes[lane] = true
         end
+    end
+end
+
+local function get_input_lanes(data, entity, input)
+    local check = data.checked[input.unit_number]
+    local lanes = {}
+    if get_belt_type(input) == "splitter" then
+        for _, side_check in pairs(check) do
+            get_input_paths(side_check, lanes)
+        end
+    else
+        get_input_paths(check, lanes)
     end
     return lanes
 end
@@ -107,20 +113,17 @@ local function add_to_queue(data, old_entity, lanes, entity, path)
     local is_splitter = belt_type == "splitter"
     local sides
     if is_splitter then
-        sides = {}
+        sides = get_splitter_sides(entity, old_entity)
         if path == 2 then
             local filter_side = get_filter_side(data, entity)
             if filter_side then
-                for _, side in pairs(get_splitter_sides(entity, old_entity)) do
+                for side in pairs(sides) do
                     if filter_side == side then
-                        sides[#sides+1] = side
+                        sides[side] = nil
                     end
                 end
                 if not next(sides) then return end
             end
-        end
-        if not next(sides) then
-            sides = side_cycle.both
         end
     end
     local unit_number = entity.unit_number
@@ -130,8 +133,8 @@ local function add_to_queue(data, old_entity, lanes, entity, path)
         local check
         if checked[unit_number] then
             if is_splitter then
-                for _, side in pairs(sides) do
-                    check = checked[unit_number][side][path%2+1][lane][path] or check
+                for side in pairs(sides) do
+                    check = checked[unit_number][side][lane][path] or check
                 end
             else
                 check = checked[unit_number][lane][path] or check
@@ -211,11 +214,11 @@ highlight_entity["underground-belt"] = function(data, entity, lanes, path)
     end
     local forward = path == 1
     if forward then
-        add_to_queue(data, entity, next_lanes, output, 1)
+        add_to_queue(data, entity, next_lanes, output, path)
     else
         for _, input in pairs(belt_neighbours.inputs) do
             local prev_lanes = get_prev_lanes(entity, lanes, input)
-            if prev_lanes then add_to_queue(data, entity, prev_lanes, input, 2) end
+            if prev_lanes then add_to_queue(data, entity, prev_lanes, input, path) end
         end
     end
     if forward == is_input and entity.neighbours then
@@ -238,15 +241,15 @@ highlight_entity["splitter"] = function(data, entity, lanes, path)
     local forward = path == 1
     local belts = {}
     for _, belt in pairs(belt_neighbours[forward and "outputs" or "inputs"]) do
-        for _, side in pairs(get_splitter_sides(entity, belt)) do
+        for side in pairs(get_splitter_sides(entity, belt)) do
             if forward or get_belt_type(belt) ~= "splitter" or get_filter_side(data, belt) ~= side then
                 belts[side] = belt
             end
         end
     end
+    local queued
     local filter_side = get_filter_side(data, entity)
-    local queued = nil
-    for _, side in pairs(forward and side_cycle[filter_side] or side_cycle.both) do
+    for side in pairs(forward and side_cycle[filter_side] or side_cycle.both) do
         local next_lanes, lane_offsets = get_output_lanes(data, entity, lanes, belts[side])
         for lane in pairs(lanes) do
             local offsets = splitter[lane][direction]
@@ -263,15 +266,14 @@ highlight_entity["splitter"] = function(data, entity, lanes, path)
     for _, belt in pairs(belt_neighbours[forward and "inputs" or "outputs"]) do
         local belt_check = data.checked[belt.unit_number]
         if belt_check then
+            local checked_lanes = forward and get_input_lanes(data, entity, belt) or lanes
+            local _, lane_offsets = get_output_lanes(data, entity, lanes, belt)
             local sides = not forward and side_cycle[filter_side] or get_splitter_sides(entity, belt)
-            for _, side in pairs(sides) do
-                local _, lane_offsets = get_output_lanes(data, entity, lanes, belt)
-                local checked_lanes = forward and get_input_lanes(data, entity, belt, side) or lanes
+            for side in pairs(sides) do
                 for lane in pairs(checked_lanes) do
                     local belt_path
                     if get_belt_type(belt) == "splitter" then
-                        local output_side = sides[2] and side or (side == "left" and "right" or "left")
-                        belt_path = belt_check[output_side][path][lane][path]
+                        belt_path = belt_check.left[lane][path] or belt_check.right[lane][path]
                     else
                         belt_path = belt_check[lane][path]
                     end

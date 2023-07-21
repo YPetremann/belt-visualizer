@@ -13,6 +13,7 @@ local function setup_globals()
     global.refresh = {}
     global.belt_lines = {}
     global.hover = global.hover or {}
+    -- global.colors = const.generate_colors()
 end
 
 script.on_init(function()

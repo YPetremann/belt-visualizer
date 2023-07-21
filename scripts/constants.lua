@@ -3,10 +3,9 @@ local copy = table.deepcopy
 
 local offset = 0.234375 -- 15/64
 local width = 3
+local radius = width * 1.25 / 32
 local color = {1, 1, 0}
 -- color = {0.5, 0.5, 0, 0.5}
-local radius = width * 1.25 / 32
-local size = width * 1.125 / 32
 
 local connectables = {
     ["transport-belt"] = true,
@@ -24,27 +23,24 @@ local lane_cycle = {
 }
 
 local side_cycle = {
-    both = {"left", "right"},
-    left = {"left"},
-    right = {"right"},
+    both = {left = true, right = true},
+    left = {left = true},
+    right = {right = true},
 }
 
 local function empty_offsets(splitter)
     local t = splitter and {left = {}, right = {}} or {}
-    return {
-        {
-            [0] = copy(t),
-            [2] = copy(t),
-            [4] = copy(t),
-            [6] = copy(t),
-        },
-        {
-            [0] = copy(t),
-            [2] = copy(t),
-            [4] = copy(t),
-            [6] = copy(t),
-        },
-    }
+    return {{
+        [0] = copy(t),
+        [2] = copy(t),
+        [4] = copy(t),
+        [6] = copy(t),
+    },{
+        [0] = copy(t),
+        [2] = copy(t),
+        [4] = copy(t),
+        [6] = copy(t),
+    }}
 end
 
 local function offsets(data)
@@ -156,6 +152,7 @@ local splitter = splitter_offsets{
     line = {0, outer_line, inner_line},
 }
 
+local size = width * 1.125 / 32
 local loader = offsets{
     input = -1,
     output = 1,
@@ -183,6 +180,27 @@ local linked_belt = offsets{
     sideload = sideload,
 }
 
+-- local speeds = {
+--     default = {1, 1, 1},
+--     [15/480] = {1, 1, 0},
+--     [30/480] = {1, 0, 0},
+--     [45/480] = {0, 0.75, 1},
+-- }
+
+-- local function generate_colors()
+--     local colors = {}
+--     local filters = {}
+--     local i = 1
+--     for ptype in pairs(connectables) do
+--         filters[i] = ptype
+--         i = i + 1
+--     end
+--     for name, prototype in pairs(game.get_filtered_entity_prototypes{{filter = "type", type = filters}}) do
+--         colors[name] = speeds[prototype.belt_speed] or speeds.default
+--     end
+--     return colors
+-- end
+
 return {
     width = width,
     color = color,
@@ -201,4 +219,5 @@ return {
     loader = loader,
     loader_1x1 = loader_1x1,
     linked_belt = linked_belt,
+    -- generate_colors = generate_colors,
 }
