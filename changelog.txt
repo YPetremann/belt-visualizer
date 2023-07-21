@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.2.7
+Date: 2023-07-21
+  Optimizations:
+    - Clearing highlights spread over multiple ticks to avoid small lag spikes
+---------------------------------------------------------------------------------------------------
 Version: 1.2.6
 Date: 2023-07-21
   Optimizations:
