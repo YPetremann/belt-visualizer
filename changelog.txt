@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.2.8
+Date: 2023-07-21
+  Features:
+    - Loaders now highlight through other loaders with the same container
+  Bugfixes:
+    - Fixed live refresh not working
+---------------------------------------------------------------------------------------------------
 Version: 1.2.7
 Date: 2023-07-21
   Optimizations:
