@@ -312,7 +312,7 @@ local function highlight_loader(loader_const)
         local forward = path == 1
         local new_entity = forward and output or belt_neighbours.inputs[1]
         add_to_queue(data, new_entity, next_lanes, path, entity)
-        if forward == (loader_type == "input") then
+        if data.container_passthrough and forward == (loader_type == "input") then
             local container = entity.loader_container
             if container and (container.type == "container" or container.type == "logistic-container") then
                 local box = container.prototype.collision_box

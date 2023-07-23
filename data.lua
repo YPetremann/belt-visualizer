@@ -4,20 +4,17 @@ data:extend{{
     key_sequence = "H",
     alternative_key_sequence = "SHIFT + H",
     action = "lua"
-},
--- {
+-- },{
 --     type = "custom-input",
 --     name = "bv-highlight-ghost",
 --     key_sequence = "SHIFT + H",
 --     action = "lua"
--- },
-{
+},{
     type = "custom-input",
     name = "bv-toggle-hover",
     key_sequence = "",
     action = "lua"
-},
-{
+},{
     type = "shortcut",
     name = "bv-toggle-hover",
     action = "lua",
@@ -50,5 +47,4 @@ data:extend{{
       mipmap_count = 2,
       flags = {"gui-icon"}
     }
-}
-}
+}}

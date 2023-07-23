@@ -95,6 +95,7 @@ local function highlight(event)
         end
     end
     data.ids = {}
+    data.container_passthrough = settings.get_player_settings(player)["bv-container-passthrough"].value
     global.in_progress[index] = true
 end
 
