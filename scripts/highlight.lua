@@ -113,12 +113,16 @@ local function add_to_queue(data, entity, lanes, path, old_entity)
     local is_splitter = belt_type == "splitter"
     local sides
     if is_splitter then
-        sides = get_splitter_sides(entity, old_entity)
+        local const_sides = get_splitter_sides(entity, old_entity)
+        sides = {}
+        for side in pairs(const_sides) do
+            sides[side] = true
+        end
         if path == 2 then
             local filter_side = get_filter_side(data, entity)
             if filter_side then
-                for side in pairs(sides) do
-                    if filter_side == side then
+                for side in pairs(const_sides) do
+                    if filter_side ~= side then
                         sides[side] = nil
                     end
                 end
@@ -134,10 +138,10 @@ local function add_to_queue(data, entity, lanes, path, old_entity)
         if checked[unit_number] then
             if is_splitter then
                 for side in pairs(sides) do
-                    check = checked[unit_number][side][lane][path] or check
+                    check = checked[unit_number][side][lane][path]
                 end
             else
-                check = checked[unit_number][lane][path] or check
+                check = checked[unit_number][lane][path]
             end
         else
             checked[unit_number] = empty_check(belt_type)
@@ -314,7 +318,7 @@ local function highlight_loader(loader_const)
         add_to_queue(data, new_entity, next_lanes, path, entity)
         if data.container_passthrough and forward == (loader_type == "input") then
             local container = entity.loader_container
-            if container and (container.type == "container" or container.type == "logistic-container") then
+            if container and (container.type == "container" or container.type == "logistic-container" or container.type == "infinity-container") then
                 local box = container.prototype.collision_box
                 local lt, rb = box.left_top, box.right_bottom
                 local pos = container.position

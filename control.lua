@@ -257,7 +257,7 @@ local function walk_belt(belt, belt_switch, belt_line, max_highlights, ghost, in
     while c < max_highlights do
         if not belt then return end
         if belt.type == "entity-ghost" and not ghost then return end
-        belt_type = get_belt_type(belt)
+        local belt_type = get_belt_type(belt)
         if belt_type == "splitter" then return end
         if include then
             belt_line[belt.unit_number] = true
