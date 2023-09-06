@@ -26,7 +26,7 @@ data:extend{{
         priority = "extra-high-no-scale",
         size = 32,
         scale = 0.5,
-        mipmap_count = 2,
+        mipmap_count = 1,
         flags = {"gui-icon"},
     },
     small_icon =
@@ -35,7 +35,7 @@ data:extend{{
       priority = "extra-high-no-scale",
       size = 24,
       scale = 0.5,
-      mipmap_count = 2,
+      mipmap_count = 1,
       flags = {"gui-icon"}
     },
     disabled_small_icon =
@@ -44,7 +44,7 @@ data:extend{{
       priority = "extra-high-no-scale",
       size = 24,
       scale = 0.5,
-      mipmap_count = 2,
+      mipmap_count = 1,
       flags = {"gui-icon"}
     }
 }}
