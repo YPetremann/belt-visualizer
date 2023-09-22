@@ -1,19 +1,21 @@
 data:extend{{
     type = "custom-input",
     name = "bv-highlight-belt",
+    key_sequence = "SHIFT + H",
+    action = "lua",
+    order = "b",
+},{
+    type = "custom-input",
+    name = "bv-highlight-ghost",
     key_sequence = "H",
-    alternative_key_sequence = "SHIFT + H",
-    action = "lua"
--- },{
---     type = "custom-input",
---     name = "bv-highlight-ghost",
---     key_sequence = "SHIFT + H",
---     action = "lua"
+    action = "lua",
+    order = "a",
 },{
     type = "custom-input",
     name = "bv-toggle-hover",
     key_sequence = "",
-    action = "lua"
+    action = "lua",
+    order = "c",
 },{
     type = "shortcut",
     name = "bv-toggle-hover",

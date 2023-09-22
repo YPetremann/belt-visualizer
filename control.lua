@@ -56,7 +56,7 @@ local function highlight(event)
     local player = game.get_player(index) --[[@as LuaPlayer]]
     local selected = player.selected
     if not selected then return end
-    local ghost = event.input_name ~= nil and event.input_name == "bv-highlight-ghost"
+    local ghost = selected.type == "entity-ghost" or event.input_name == "bv-highlight-ghost"
     local type = selected.type
     if type == "entity-ghost" then
         if ghost then
@@ -120,7 +120,7 @@ local function refresh(data)
 end
 
 script.on_event("bv-highlight-belt", highlight)
--- script.on_event("bv-highlight-ghost", highlight)
+script.on_event("bv-highlight-ghost", highlight)
 
 script.on_event(e.on_selected_entity_changed, function(event)
     if not global.hover[event.player_index] then return end
