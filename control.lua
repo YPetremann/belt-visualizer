@@ -140,8 +140,9 @@ local function toggle_hover(event)
     local index = event.player_index
     clear(index)
     local player = game.get_player(index) --[[@as LuaPlayer]]
-    global.hover[index] = not global.hover[index]
-    player.set_shortcut_toggled("bv-toggle-hover", global.hover[index])
+    local toggle = not player.is_shortcut_toggled("bv-toggle-hover")
+    global.hover[index] = toggle
+    player.set_shortcut_toggled("bv-toggle-hover", toggle)
 end
 
 script.on_event("bv-toggle-hover", toggle_hover)
