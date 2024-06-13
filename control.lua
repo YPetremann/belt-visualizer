@@ -73,7 +73,8 @@ local function highlight(event)
     global.data[index] = data
     local unit_number = selected.unit_number --[[@as number]]
     local filter = utils.get_cursor_name(player)
-    if data.filter == filter and data.origin.valid and data.origin.unit_number == unit_number then
+    local repeat_origin = data.origin and data.origin.valid and data.origin.unit_number == unit_number
+    if data.filter == filter and repeat_origin then
         data.cycle = data.cycle % 3 + 1
     else
         data.cycle = 1
