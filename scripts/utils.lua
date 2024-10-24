@@ -10,7 +10,7 @@ function utils.get_cursor_name(player)
         return cursor.name
     end
 
-    local ghost = player.cursor_ghost
+    local ghost = player.cursor_ghost  --[[@as LuaItemPrototype?]]
     if ghost then
         return ghost.name
     end
